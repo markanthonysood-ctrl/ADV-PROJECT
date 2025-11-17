@@ -1,180 +1,194 @@
-"use client";
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/router";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const router = useRouter();
+export default function LoginPage() {
+    const router = useRouter();
+    const [mode, setMode] = useState("login"); 
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirm, setConfirm] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-  async function submit(e) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+    const resetForm = () => {
+        setName("");
+        setEmail("");
+        setPassword("");
+        setConfirm("");
+        setError("");
+    };
 
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+    const saveUser = (user) => {
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+        users.push(user);
+        localStorage.setItem("users", JSON.stringify(users));
+        localStorage.setItem("authUser", JSON.stringify(user));
+    };
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Login failed. Please try again.");
+    const handleSignup = (e) => {
+        e.preventDefault();
+        setError("");
+        if (!email || !password || !name) return setError("Please complete all fields.");
+        if (password.length < 6) return setError("Password must be at least 6 characters.");
+        if (password !== confirm) return setError("Passwords do not match.");
+        setLoading(true);
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+        if (users.find((u) => u.email === email)) {
+            setLoading(false);
+            return setError("An account with that email already exists.");
+        }
+        const user = { name, email, password };
+        saveUser(user);
         setLoading(false);
-        return;
-      }
+        router.push("/dashboard");
+    };
 
-      // Store userId in localStorage
-      localStorage.setItem("userId", data.userId);
-      localStorage.setItem("userName", data.name || "User");
+    const handleLogin = (e) => {
+        e.preventDefault();
+        setError("");
+        if (!email || !password) return setError("Enter email and password.");
+        setLoading(true);
+        const users = JSON.parse(localStorage.getItem("users") || "[]");
+        const found = users.find((u) => u.email === email && u.password === password);
+        setLoading(false);
+        if (!found) return setError("Invalid email or password.");
+        localStorage.setItem("authUser", JSON.stringify(found));
+        router.push("/dashboard");
+    };
 
-      router.push(`/dashboard?userId=${data.userId}`);
-    } catch (err) {
-      setError("An error occurred. Please try again.");
-      setLoading(false);
-    }
-  }
+    const containerStyle = {
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f4f6fb",
+        fontFamily: "Inter, system-ui, sans-serif",
+        padding: 20,
+    };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mb-4">
-              <svg
-                className="h-8 w-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
+    const cardStyle = {
+        width: 360,
+        background: "#fff",
+        borderRadius: 8,
+        boxShadow: "0 6px 18px rgba(20,20,40,0.08)",
+        padding: 24,
+    };
+
+    const inputStyle = {
+        width: "100%",
+        padding: "10px 12px",
+        marginBottom: 12,
+        borderRadius: 6,
+        border: "1px solid #a29e9eff",
+        outline: "none",
+        fontSize: 14,
+        color: "#000000",
+    };
+
+    const buttonStyle = {
+        width: "100%",
+        padding: "10px 12px",
+        borderRadius: 6,
+        border: "none",
+        background: "#3b82f6",
+        color: "#fff",
+        fontWeight: 600,
+        cursor: "pointer",
+        fontSize: 15,
+    };
+
+    return (
+        <div style={containerStyle}>
+            <div style={cardStyle}>
+                <h2 style={{ margin: "0 0 8px 0", fontSize: 20, color:"black"}}>
+                    {mode === "login" ? "Welcome back" : "Create an account"}
+                </h2>
+                <p style={{ margin: "0 0 16px 0", color: "#050505ff", fontSize: 13 }}>
+                    {mode === "login"
+                        ? "Sign in to access your dashboard."
+                        : "Sign up to create a new account and be redirected to the dashboard."}
+                </p>
+
+                <form onSubmit={mode === "login" ? handleLogin : handleSignup}>
+                    {mode === "signup" && (
+                        <input
+                            style={inputStyle}
+                            placeholder="Full name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            aria-label="Full name"
+                        />
+                    )}
+
+                    <input
+                        style={inputStyle}
+                        placeholder="Email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        aria-label="Email"
+                    />
+
+                    <input
+                        style={inputStyle}
+                        placeholder="Password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        aria-label="Password"
+                    />
+
+                    {mode === "signup" && (
+                        <input
+                            style={inputStyle}
+                            placeholder="Confirm password"
+                            type="password"
+                            value={confirm}
+                            onChange={(e) => setConfirm(e.target.value)}
+                            aria-label="Confirm password"
+                        />
+                    )}
+
+                    {error && (
+                        <div style={{ color: "#b00020", marginBottom: 12, fontSize: 13 }}>{error}</div>
+                    )}
+
+                    <button style={buttonStyle} type="submit" disabled={loading}>
+                        {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
+                    </button>
+                </form>
+
+                <div style={{ marginTop: 14, textAlign: "center", fontSize: 13, color: "#65748b" }}>
+                    {mode === "login" ? (
+                        <>
+                            Don&apos;t have an account?{" "}
+                            <button
+                                onClick={() => {
+                                    resetForm();
+                                    setMode("signup");
+                                }}
+                                style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer" }}
+                            >
+                                Sign up
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            Already have an account?{" "}
+                            <button
+                                onClick={() => {
+                                    resetForm();
+                                    setMode("login");
+                                }}
+                                style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer" }}
+                            >
+                                Sign in
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Sign in to your event registration account
-            </p>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {/* Form */}
-          <form className="space-y-6" onSubmit={submit}>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-            </div>
-          </form>
-
-          {/* Sign Up Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{" "}
-              <a
-                href="/register"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-              >
-                Create one now
-              </a>
-            </p>
-          </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-gray-500">
-          Event Registration System
-        </p>
-      </div>
-    </div>
-  );
+    );
 }
